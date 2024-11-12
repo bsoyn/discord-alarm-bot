@@ -12,15 +12,12 @@ module.exports = {
             .setDescription('select channel')
             .setRequired(true)
         ),
+
     async execute(interaction) {
-        let channelName = "";
-        let channelID = "";
         const targetChannel = interaction.options.getChannel('target');
-        channelName = targetChannel.name;
-        channelID = targetChannel.id;
         if (targetChannels.has(targetChannel.id)){
             await interaction.reply({
-                content: "ephemeral reply",
+                content: "이미 등록된 채널입니다.",
                 ephemeral: true
             });
             console.log(targetChannels);
@@ -32,7 +29,7 @@ module.exports = {
             reminderInterval: null
         });
         await interaction.reply({
-            content: `This command was used in channel: ${channelName}`,
+            content: `다음 채널을 추가합니다: ${targetChannel.name}`,
             ephemeral: true
         });
     }
