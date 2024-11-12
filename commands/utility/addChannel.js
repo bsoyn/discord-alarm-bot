@@ -1,11 +1,12 @@
 const { SlashCommandBuilder } = require('discord.js');
 const fs = require('node:fs');
+const targetChannels = require('../../data/channelStorage');
 
-const targetChannels = new Map();
+// const targetChannels = new Map();
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('setchannel')
+        .setName('addchannel')
         .setDescription('select channel which apply this bot')
         .addChannelOption(option => 
             option.setName('target')
@@ -20,7 +21,6 @@ module.exports = {
                 content: "이미 등록된 채널입니다.",
                 ephemeral: true
             });
-            console.log(targetChannels);
             return;
         }
         targetChannels.set(targetChannel.id, {
