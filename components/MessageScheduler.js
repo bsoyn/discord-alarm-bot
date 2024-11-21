@@ -23,6 +23,21 @@ class MessageScheduler {
         await fs.writeFile(this.channelsPath, JSON.stringify(data, null, 2));
     }
 
+    isSleepTime(date) {
+        const hour = date.getHours();
+        return hour >= 0 && hour < 8;
+    }
+    // Add method to get next available time
+    getNextAvailableTime(date) {
+        if (this.isSleepTime(date)) {
+            // If current time is in quiet hours, set time to 8:00 AM
+            const nextTime = new Date(date);
+            nextTime.setHours(8, 0, 0, 0);
+            return nextTime;
+        }
+        return date;
+    }
+
     //send dm method
     async sendDM(client, channelId, userId) {
         try {
@@ -47,6 +62,17 @@ class MessageScheduler {
                 const channel = channels.channels[channelId];
 
                 if (channel && channel.lastMessageAuthor) {
+                    const currentTime = scheduleTime;
+
+                    if (this.isSleepTime(scheduleTime)) {
+                        const nextTime = this.getNextAvailableTime(scheduleTime);
+                        channel.nextSchedule = nextTime.toISOString();
+                        await this.saveChannels(channels);
+                        this.scheduleMessage(client, channelId, nextTime);
+                        console.log(`Message rescheduled to ${nextTime} due to sleep hours`);
+                        return;
+                    }
+
                     await this.sendDM(client, channelId, channel.lastMessageAuthor);
 
                     //Update the next schedule time
@@ -67,8 +93,10 @@ class MessageScheduler {
 
     async updateSchedule(client, channelId, targetUserId, message) {
         //메세지 작성 시간에서 시간 더하기
-        const nextTime = message.createdAt;
+        let nextTime = message.createdAt;
         nextTime.setHours(nextTime.getHours() + 4); // Schedule 2 hours from now 시간 수정
+
+        nextTime = this.getNextAvailableTime(nextTime);
 
         const channels = await this.loadChannels();
         if (!channels.channels[channelId]) {
@@ -82,6 +110,8 @@ class MessageScheduler {
 
         await this.saveChannels(channels);
         await this.scheduleMessage(client, channelId, nextTime);
+
+        console.log(`Next message scheduled for: ${nextTime}`);
     }
 
     async cancelSchedule(channelId) {
@@ -116,24 +146,29 @@ class MessageScheduler {
             for (const [channelId, channelData] of Object.entries(channels.channels)) {
                 if (!channelData.nextSchedule || !channelData.lastMessageAuthor) continue;
 
-                const scheduledTime = new Date(channelData.nextSchedule);
+                let scheduledTime = new Date(channelData.nextSchedule);
 
                 if (scheduledTime <= currentTime) {
-                    // If schedule has passed, send DM immediately and create new schedule
-                    await this.sendDM(client, channelId, channelData.lastMessageAuthor);
+                    if (this.isSleepTime(currentTime)) {
+                        scheduledTime = this.getNextAvailableTime(currentTime);
+                    } else {
+                        // If schedule has passed, send DM immediately and create new schedule
+                        await this.sendDM(client, channelId, channelData.lastMessageAuthor);
 
-                    // Create new schedule
-                    const nextTime = new Date();
-                    nextTime.setHours(nextTime.getHours() + 3); //시간 수정
-                    channelData.nextSchedule = nextTime.toISOString();
-                    await this.scheduleMessage(client, channelId, nextTime);
-
-                    console.log(`Passed schedule handled for channel ${channelId}`);
+                        // Create new schedule
+                        scheduledTime = new Date();
+                        scheduledTime.setHours(scheduledTime.getHours() + 3); //시간 수정
+                        scheduledTime = this.getNextAvailableTime(scheduledTime);
+                    }
                 } else {
-                    // If schedule is in future, just restore it
-                    await this.scheduleMessage(client, channelId, scheduledTime);
-                    console.log(`Future schedule restored for channel ${channelId}`);
+                    //아직 dm 시간 이전이면, sleep 시간이 아닌지 확인
+                    scheduledTime = this.getNextAvailableTime(scheduledTime);
                 }
+                channelData.nextSchedule = scheduledTime.toISOString();
+                // If schedule is in future, just restore it
+                await this.scheduleMessage(client, channelId, scheduledTime);
+
+                console.log(`schedule restart complete`);
             }
 
             // Save updated schedules
