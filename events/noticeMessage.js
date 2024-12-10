@@ -2,8 +2,6 @@ const { Events } = require("discord.js");
 const scheduler = require("../components/MessageScheduler");
 const fs = require("node:fs").promises;
 
-// const scheduler = new MessageScheduler();
-
 module.exports = {
     name: Events.MessageCreate,
     async execute(message) {
@@ -18,22 +16,18 @@ module.exports = {
             //봇의 메세지거나 대상 채널이 아니면 return
             if (message.author.bot || !jsondata.channels[channel.id]) return;
 
-            //jsondata 정정
-            jsondata.channels[channel.id] = {
-                channelId: channel.id,
-                lastMessageAuthor: message.author.id,
-                nextSchedule: message.createdAt,
-            };
-            // Get channel members
+            // //jsondata 정정 <<이거 왜하지??
+            // jsondata.channels[channel.id] = {
+            //     channelId: channel.id,
+            //     targetUserId: message.author.id,
+            //     nextSchedule: message.createdAt,
+            // };
+            // channel Members 가져오기
             const channelMembers = await message.guild.members.fetch();
-            // if (channelMembers.size !== 2) {
-            //     console.log(channelMembers);
-            //     console.log("return");
-            //     return;
-            // }
-            // Find the other user
+            // 상대 user 찾기
             const otherUser = channelMembers.find(member => member.id !== message.author.id)?.user;
             if (!otherUser) return;
+            //schedule update
             if (otherUser) {
                 await scheduler.updateSchedule(client, message.channel.id, otherUser.id, message);
                 console.log(`Schedule updated for channel ${message.channel.name}`);

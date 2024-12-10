@@ -24,7 +24,9 @@ class MessageScheduler {
     }
 
     isSleepTime(date) {
-        const hour = date.getHours();
+        const kstdate = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+
+        const hour = kstdate.getHours();
         return hour >= 0 && hour < 8;
     }
     // Add method to get next available time
@@ -61,9 +63,7 @@ class MessageScheduler {
                 const channels = await this.loadChannels();
                 const channel = channels.channels[channelId];
 
-                if (channel && channel.lastMessageAuthor) {
-                    const currentTime = scheduleTime;
-
+                if (channel && channel.targetUserId) {
                     if (this.isSleepTime(scheduleTime)) {
                         const nextTime = this.getNextAvailableTime(scheduleTime);
                         channel.nextSchedule = nextTime.toISOString();
@@ -73,7 +73,7 @@ class MessageScheduler {
                         return;
                     }
 
-                    await this.sendDM(client, channelId, channel.lastMessageAuthor);
+                    await this.sendDM(client, channelId, channel.targetUserId);
 
                     //Update the next schedule time
                     const nexttime = new Date();
@@ -103,7 +103,7 @@ class MessageScheduler {
             channels.channels[channelId] = {};
         }
 
-        channels.channels[channelId].lastMessageAuthor = targetUserId;
+        channels.channels[channelId].targetUserId = targetUserId;
         channels.channels[channelId].nextSchedule = nextTime.toISOString();
         channels.channels[channelId].lastMessageId = message.id; //save message id
         console.log(channels);
@@ -126,7 +126,7 @@ class MessageScheduler {
             // Update channels.json
             const channels = await this.loadChannels();
             if (channels.channels[channelId]) {
-                delete channels.channels[channelId].lastMessageAuthor;
+                delete channels.channels[channelId].targetUserId;
                 delete channels.channels[channelId].nextSchedule;
                 delete channels.channels[channelId].lastMessageId;
                 await this.saveChannels(channels);
@@ -144,7 +144,7 @@ class MessageScheduler {
             const currentTime = new Date();
 
             for (const [channelId, channelData] of Object.entries(channels.channels)) {
-                if (!channelData.nextSchedule || !channelData.lastMessageAuthor) continue;
+                if (!channelData.nextSchedule || !channelData.targetUserId) continue;
 
                 let scheduledTime = new Date(channelData.nextSchedule);
 
@@ -153,7 +153,7 @@ class MessageScheduler {
                         scheduledTime = this.getNextAvailableTime(currentTime);
                     } else {
                         // If schedule has passed, send DM immediately and create new schedule
-                        await this.sendDM(client, channelId, channelData.lastMessageAuthor);
+                        await this.sendDM(client, channelId, channelData.targetUserId);
 
                         // Create new schedule
                         scheduledTime = new Date();

@@ -5,12 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName("addchannel")
         .setDescription("select channel which apply this bot")
-        .addChannelOption((option) =>
-            option
-                .setName("target")
-                .setDescription("select channel")
-                .setRequired(true)
-        ),
+        .addChannelOption(option => option.setName("target").setDescription("select channel").setRequired(true)),
 
     async execute(interaction) {
         try {
@@ -29,14 +24,12 @@ module.exports = {
 
             jsondata.channels[channel.id] = {
                 channelId: channel.id,
-                lastMessageAuthor: null,
+                targetUserId: null,
                 nextSchedule: null,
+                lastMessageId: null,
             };
 
-            await fs.writeFile(
-                "./data/channels.json",
-                JSON.stringify(jsondata, null, 2)
-            );
+            await fs.writeFile("./data/channels.json", JSON.stringify(jsondata, null, 2));
             await interaction.reply({
                 content: `다음 채널을 추가합니다: ${channel.name}`,
                 ephemeral: true,
