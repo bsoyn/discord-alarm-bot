@@ -79,7 +79,6 @@ class MessageScheduler {
                     const nexttime = new Date();
                     nexttime.setHours(nexttime.getHours() + 4); //시간 수정
                     channel.nextSchedule = nexttime.toISOString();
-                    console.log(nexttime);
                     await this.saveChannels(channels);
                     this.scheduleMessage(client, channelId, nexttime);
                 }
@@ -106,7 +105,6 @@ class MessageScheduler {
         channels.channels[channelId].targetUserId = targetUserId;
         channels.channels[channelId].nextSchedule = nextTime.toISOString();
         channels.channels[channelId].lastMessageId = message.id; //save message id
-        console.log(channels);
 
         await this.saveChannels(channels);
         await this.scheduleMessage(client, channelId, nextTime);
@@ -117,7 +115,6 @@ class MessageScheduler {
     async cancelSchedule(channelId) {
         try {
             // Cancel the scheduled job
-            console.log(this.jobs);
             if (this.jobs.has(channelId)) {
                 this.jobs.get(channelId).cancel();
                 this.jobs.delete(channelId);

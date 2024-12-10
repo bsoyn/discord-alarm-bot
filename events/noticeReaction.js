@@ -16,7 +16,6 @@ module.exports = {
             const channels = await scheduler.loadChannels();
             const channelId = reaction.message.channel.id;
             const channelData = channels.channels[channelId];
-            console.log(channelData);
 
             //message가 schedule된 last message인지 확인
             if (channelData && channelData.lastMessageId === reaction.message.id) {
